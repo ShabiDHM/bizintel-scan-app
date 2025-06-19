@@ -65,7 +65,6 @@ def create_excel_agent(file_path):
     llm = ChatGroq(api_key=st.secrets["GROQ_API_KEY"], model='llama3-8b-8192', temperature=0)
     df = pd.read_excel(file_path)
     
-    # --- ADDED: Suffix to instruct the agent on the output language ---
     ALBANIAN_SUFFIX = """
     After you have found the answer, please provide the final response to the user in the Albanian language.
     """
@@ -77,14 +76,14 @@ def create_excel_agent(file_path):
         agent_type=AgentType.OPENAI_FUNCTIONS,
         agent_executor_kwargs={"handle_parsing_errors": True},
         allow_dangerous_code=True,
-        suffix=ALBANIAN_SUFFIX # Add language instruction
+        suffix=ALBANIAN_SUFFIX
     )
     return agent
 
 # --- STREAMLIT APP ---
 
-st.set_page_config(page_title="Pyte Andin", layout="wide", initial_sidebar_state="expanded")
-st.title("Pyte Andin - Analizë Inteligjente e Dokumenteve")
+st.set_page_config(page_title="BizIntel Scan", layout="wide", initial_sidebar_state="expanded")
+st.title("BizIntel Scan - Analizë Inteligjente e Dokumenteve 🇦🇱")
 
 # Initialize session state variables
 if "agent_chain" not in st.session_state:
@@ -95,7 +94,12 @@ if "processed_file" not in st.session_state:
 # Sidebar for file upload and processing
 with st.sidebar:
     st.header("Paneli i Kontrollit")
-    uploaded_file = st.file_uploader("Zgjidhni një dokument", type=["pdf", "docx", "txt", "xlsx"], label_visibility="collapsed")
+    # --- UPDATED FILE UPLOADER ---
+    uploaded_file = st.file_uploader(
+        "Ngarkoni skedarin tuaj këtu:",
+        type=["pdf", "docx", "txt", "xlsx"],
+        help="Klikoni për të kërkuar ose tërhiqni një skedar PDF, DOCX, TXT, ose XLSX."
+    )
 
     if st.session_state.agent_chain is not None:
         if st.button("Fillo një analizë të re", use_container_width=True):
@@ -114,7 +118,7 @@ with st.sidebar:
         is_excel = uploaded_file.name.endswith('.xlsx')
 
         if is_excel:
-            st.warning("Kujdes: Analiza e skedarëve Excel lejon AI të ekzekutojë kod për të analizuar të dhënat. Kjo është e sigurt me skedarë të besuar.")
+            st.warning("Kujdes: Analiza e skedarëve Excel lejon AI të ekzekutojë kod. Kjo është e sigurt me skedarë të besuar.")
             if st.button("Po, analizo skedarin Excel", use_container_width=True):
                 with st.spinner("Duke krijuar agjentin e analistit të të dhënave..."):
                     st.session_state.agent_chain = create_excel_agent(temp_file_path)
@@ -141,7 +145,6 @@ with st.sidebar:
         "Ngarkoni një skedar dhe bëni pyetje për të marrë përgjigje të shpejta dhe të sakta."
     )
 
-
 # Main chat interface
 if st.session_state.agent_chain:
     st.header("Bëni pyetjen tuaj")
@@ -163,7 +166,7 @@ if st.session_state.agent_chain:
             except Exception as e:
                 st.error(f"Pati një problem gjatë marrjes së përgjigjes: {e}")
 else:
-    st.markdown("### Mirë se vini në Pyte Andin!")
+    st.markdown("### Mirë se vini në BizIntel Scan!")
     st.info("Për të filluar, ju lutem ngarkoni një dokument nga paneli i kontrollit në të majtë.")
     st.markdown("#### Shembuj pyetjesh që mund të bëni:")
     st.markdown("- **Për një kontratë (PDF/DOCX):** 'Cilat janë afatet kryesore të pagesës?'")
