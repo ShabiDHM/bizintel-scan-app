@@ -163,7 +163,7 @@ if st.session_state.agent_chain:
             except Exception as e:
                 st.error(f"Pati një problem gjatë marrjes së përgjigjes: {e}")
 else:
-    st.markdown("### Mirë se vini në BizIntel Scan!")
+    st.markdown("### Mirë se vini në Pyte Andin!")
     st.info("Për të filluar, ju lutem ngarkoni një dokument nga paneli i kontrollit në të majtë.")
     st.markdown("#### Shembuj pyetjesh që mund të bëni:")
     st.markdown("- **Për një kontratë (PDF/DOCX):** 'Cilat janë afatet kryesore të pagesës?'")
