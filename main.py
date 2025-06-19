@@ -82,8 +82,9 @@ def create_excel_agent(file_path):
 
 # --- STREAMLIT APP ---
 
-st.set_page_config(page_title="BizIntel Scan", layout="wide", initial_sidebar_state="expanded")
-st.title("BizIntel Scan - Analizë Inteligjente e Dokumenteve 🇦🇱")
+st.set_page_config(page_title="Vete Andin", layout="wide", initial_sidebar_state="expanded")
+# --- THIS LINE HAS BEEN CHANGED ---
+st.title("Vete Andin - Analizë Inteligjente e Dokumenteve")
 
 # Initialize session state variables
 if "agent_chain" not in st.session_state:
@@ -94,7 +95,6 @@ if "processed_file" not in st.session_state:
 # Sidebar for file upload and processing
 with st.sidebar:
     st.header("Paneli i Kontrollit")
-    # --- UPDATED FILE UPLOADER ---
     uploaded_file = st.file_uploader(
         "Ngarkoni skedarin tuaj këtu:",
         type=["pdf", "docx", "txt", "xlsx"],
@@ -141,7 +141,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### Rreth Aplikacionit")
     st.markdown(
-        "**BizIntel Scan** është një mjet BI i bazuar në AI që ju lejon të 'bisedoni' me dokumentet tuaja. "
+        "**Vete Andin** është një mjet i bazuar në Inteligjencën Artificiale që ju lejon të 'bisedoni' me dokumentet tuaja. "
         "Ngarkoni një skedar dhe bëni pyetje për të marrë përgjigje të shpejta dhe të sakta."
     )
 
@@ -166,7 +166,7 @@ if st.session_state.agent_chain:
             except Exception as e:
                 st.error(f"Pati një problem gjatë marrjes së përgjigjes: {e}")
 else:
-    st.markdown("### Mirë se vini në BizIntel Scan!")
+    st.markdown("### Mirë se vini në Vete Andin!")
     st.info("Për të filluar, ju lutem ngarkoni një dokument nga paneli i kontrollit në të majtë.")
     st.markdown("#### Shembuj pyetjesh që mund të bëni:")
     st.markdown("- **Për një kontratë (PDF/DOCX):** 'Cilat janë afatet kryesore të pagesës?'")
