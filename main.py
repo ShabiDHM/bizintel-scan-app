@@ -28,7 +28,7 @@ def get_vector_store_from_file(file_path):
     elif file_path.endswith(".txt"):
         loader = TextLoader(file_path)
     else:
-        st.error("File type not supported for text analysis.")
+        st.error("Formati i skedarit nuk suportohet për analizë teksti.")
         return None
     documents = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -42,10 +42,17 @@ def create_rag_chain(vector_store):
     llm = ChatGroq(api_key=st.secrets["GROQ_API_KEY"], model='llama3-8b-8192')
     prompt = ChatPromptTemplate.from_template(
         """
-        Answer the user's question based only on the following context. Provide the answer in Albanian.
-        Context: {context}
-        Question: {input}
-        Answer in Albanian:
+        Përgjigju pyetjes së përdoruesit vetëm bazuar në kontekstin e mëposhtëm. 
+        Nëse nuk e di përgjigjen, thjesht thuaj që nuk e di. Mos shpik përgjigje.
+        Jep përgjigjen në gjuhën Shqipe.
+
+        Konteksti:
+        {context}
+
+        Pyetja:
+        {input}
+
+        Përgjigje në Shqip:
         """
     )
     document_chain = create_stuff_documents_chain(llm, prompt)
@@ -63,27 +70,28 @@ def create_excel_agent(file_path):
         verbose=True,
         agent_type=AgentType.OPENAI_FUNCTIONS,
         agent_executor_kwargs={"handle_parsing_errors": True},
-        allow_dangerous_code=True # We now control this via the UI button
+        allow_dangerous_code=True
     )
     return agent
 
 # --- STREAMLIT APP ---
 
-st.set_page_config(page_title="BizIntel Scan", layout="wide")
-st.title("BizIntel Scan - Analizë Inteligjente e Dokumenteve 🇦🇱")
-st.write("Ngarkoni një dokument (PDF, DOCX, TXT, XLSX) dhe bëni pyetje specifike rreth përmbajtjes së tij.")
+st.set_page_config(page_title="BizIntel Scan", layout="wide", initial_sidebar_state="expanded")
+st.title("Analizë Inteligjente e Dokumenteve")
 
+# Initialize session state variables
 if "agent_chain" not in st.session_state:
     st.session_state.agent_chain = None
 if "processed_file" not in st.session_state:
     st.session_state.processed_file = None
 
+# Sidebar for file upload and processing
 with st.sidebar:
-    st.header("1. Ngarko Dokumentin")
-    uploaded_file = st.file_uploader("Zgjidhni një dokument", type=["pdf", "docx", "txt", "xlsx"])
+    st.header("Paneli i Kontrollit")
+    uploaded_file = st.file_uploader("Zgjidhni një dokument", type=["pdf", "docx", "txt", "xlsx"], label_visibility="collapsed")
 
     if st.session_state.agent_chain is not None:
-        if st.button("Fillo një analizë të re"):
+        if st.button("Fillo një analizë të re", use_container_width=True):
             st.session_state.agent_chain = None
             st.session_state.processed_file = None
             st.rerun()
@@ -95,58 +103,65 @@ with st.sidebar:
             f.write(uploaded_file.getbuffer())
 
     if uploaded_file and st.session_state.processed_file != uploaded_file.name:
-        st.info(f"Dokumenti i gatshëm për përpunim: `{uploaded_file.name}`")
-        
-        # --- NEW LOGIC: Differentiate between Excel and other files ---
+        st.info(f"Skedari i gatshëm për përpunim: `{uploaded_file.name}`")
         is_excel = uploaded_file.name.endswith('.xlsx')
 
         if is_excel:
-            st.warning("Kujdes: Analiza e skedarëve Excel lejon ekzekutimin e kodit për të analizuar të dhënat. Kjo është e sigurt me skedarë të besuar.")
-            if st.button("Po, vazhdo me analizën e Excel"):
+            st.warning("Kujdes: Analiza e skedarëve Excel lejon AI të ekzekutojë kod për të analizuar të dhënat. Kjo është e sigurt me skedarë të besuar.")
+            if st.button("Po, analizo skedarin Excel", use_container_width=True):
                 with st.spinner("Duke krijuar agjentin e analistit të të dhënave..."):
                     st.session_state.agent_chain = create_excel_agent(temp_file_path)
                     st.session_state.processed_file = uploaded_file.name
                     st.rerun()
-        else: # For PDF, DOCX, TXT
-            if st.button("Përpuno Dokumentin"):
+        else:
+            if st.button("Përpuno Dokumentin", use_container_width=True):
                 with st.spinner("Duke përpunuar dokumentin..."):
                     vector_store = get_vector_store_from_file(temp_file_path)
                     if vector_store is not None:
                         st.session_state.agent_chain = create_rag_chain(vector_store)
                         st.session_state.processed_file = uploaded_file.name
                     st.rerun()
-
     elif st.session_state.processed_file is not None:
-        st.success(f"Dokumenti '{st.session_state.processed_file}' është gati për pyetje.")
+        st.success(f"Skedari '{st.session_state.processed_file}' është gati për pyetje.")
 
     if temp_file_path and os.path.exists(temp_file_path):
         os.remove(temp_file_path)
+        
+    st.markdown("---")
+    st.markdown("### Rreth Aplikacionit")
+    st.markdown(
+        "**BizIntel Scan** është një mjet BI i bazuar në AI që ju lejon të 'bisedoni' me dokumentet tuaja. "
+        "Ngarkoni një skedar dhe bëni pyetje për të marrë përgjigje të shpejta dhe të sakta."
+    )
+
 
 # Main chat interface
-st.header("2. Bëni pyetjen tuaj")
-
 if st.session_state.agent_chain:
-    user_question = st.text_input("Shkruani pyetjen tuaj këtu:")
+    st.header("Bëni pyetjen tuaj")
+    user_question = st.text_input("Shkruani pyetjen tuaj këtu:", label_visibility="collapsed")
     if user_question:
         with st.spinner("Duke kërkuar përgjigjen..."):
             try:
-                # --- NEW LOGIC: The response key is different for agents ---
                 is_excel = (
                     st.session_state.processed_file is not None and
                     st.session_state.processed_file.endswith('.xlsx')
                 )
                 response = st.session_state.agent_chain.invoke({"input": user_question})
-                
                 st.write("### Përgjigje:")
                 if is_excel:
                     st.write(response["output"])
-                else: # For RAG chain
+                else:
                     st.write(response["answer"])
                     with st.expander("Shiko kontekstin e përdorur"):
                         for i, doc in enumerate(response["context"]):
                             st.write(f"--- Pjesa e Kontekstit {i+1} ---")
                             st.write(doc.page_content)
             except Exception as e:
-                st.error(f"Ndodhi një gabim: {e}")
+                st.error(f"Pati një problem gjatë marrjes së përgjigjes: {e}")
 else:
-    st.warning("Ju lutem ngarkoni dhe përpunoni një dokument për të filluar.")
+    st.markdown("### Mirë se vini në BizIntel Scan!")
+    st.info("Për të filluar, ju lutem ngarkoni një dokument nga paneli i kontrollit në të majtë.")
+    st.markdown("#### Shembuj pyetjesh që mund të bëni:")
+    st.markdown("- **Për një kontratë (PDF/DOCX):** 'Cilat janë afatet kryesore të pagesës?'")
+    st.markdown("- **Për një raport financiar (XLSX):** 'Cila është shuma totale e fitimit?' ose 'Gjej mesataren e shitjeve mujore.'")
+    st.markdown("- **Për një shënim (TXT):** 'Përmblidh pikat kryesore të takimit.'")
