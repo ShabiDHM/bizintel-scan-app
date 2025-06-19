@@ -64,20 +64,27 @@ def create_excel_agent(file_path):
     """Creates a Data Analyst Agent for Excel files."""
     llm = ChatGroq(api_key=st.secrets["GROQ_API_KEY"], model='llama3-8b-8192', temperature=0)
     df = pd.read_excel(file_path)
+    
+    # --- ADDED: Suffix to instruct the agent on the output language ---
+    ALBANIAN_SUFFIX = """
+    After you have found the answer, please provide the final response to the user in the Albanian language.
+    """
+
     agent = create_pandas_dataframe_agent(
         llm,
         df,
         verbose=True,
         agent_type=AgentType.OPENAI_FUNCTIONS,
         agent_executor_kwargs={"handle_parsing_errors": True},
-        allow_dangerous_code=True
+        allow_dangerous_code=True,
+        suffix=ALBANIAN_SUFFIX # Add language instruction
     )
     return agent
 
 # --- STREAMLIT APP ---
 
-st.set_page_config(page_title="BizIntel Scan", layout="wide", initial_sidebar_state="expanded")
-st.title("Analizë Inteligjente e Dokumenteve")
+st.set_page_config(page_title="Pyte Andin", layout="wide", initial_sidebar_state="expanded")
+st.title("Pyte Andin - Analizë Inteligjente e Dokumenteve")
 
 # Initialize session state variables
 if "agent_chain" not in st.session_state:
@@ -142,10 +149,7 @@ if st.session_state.agent_chain:
     if user_question:
         with st.spinner("Duke kërkuar përgjigjen..."):
             try:
-                is_excel = (
-                    st.session_state.processed_file is not None and
-                    st.session_state.processed_file.endswith('.xlsx')
-                )
+                is_excel = (st.session_state.processed_file is not None and st.session_state.processed_file.endswith('.xlsx'))
                 response = st.session_state.agent_chain.invoke({"input": user_question})
                 st.write("### Përgjigje:")
                 if is_excel:
